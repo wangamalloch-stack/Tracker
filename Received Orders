@@ -1,0 +1,32 @@
+Private Sub Worksheet_Change(ByVal Target As Range)
+    Dim wsOrders As Worksheet
+    Dim lastRowOrders As Long
+    Dim r As Range
+    Dim statusVal As String
+    Dim rngStatus As Range
+    Dim i As Long
+
+    Set wsOrders = Sheets("Orders")
+
+    If Not Intersect(Target, Me.Columns("K")) Is Nothing Then
+        Application.EnableEvents = False
+        On Error GoTo CleanUp
+
+        Set rngStatus = Intersect(Target, Me.Columns("K"))
+        For i = rngStatus.Count To 1 Step -1
+            Set r = rngStatus.Cells(i)
+            If r.Row >= 7 Then
+                statusVal = LCase(Trim(r.Value))
+                If statusVal = "part received" Or statusVal = "due" Or statusVal = "overdue" Then
+                    lastRowOrders = wsOrders.Cells(wsOrders.Rows.Count, "B").End(xlUp).Row + 1
+                    Me.Range("B" & r.Row & ":M" & r.Row).Copy Destination:=wsOrders.Range("B" & lastRowOrders)
+                    Me.Rows(r.Row).Delete
+                End If
+            End If
+        Next i
+
+CleanUp:
+        Application.EnableEvents = True
+    End If
+End Sub
+
