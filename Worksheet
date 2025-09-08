@@ -1,0 +1,53 @@
+Private Sub Worksheet_Change(ByVal Target As Range)
+    Dim wsReceived As Worksheet
+    Dim wsBackup As Worksheet
+    Dim lastRowReceived As Long
+    Dim lastRowBackup As Long
+    Dim r As Range
+    Dim statusVal As String
+    Dim rngStatus As Range
+    Dim i As Long
+
+    On Error GoTo CleanUp
+    Set wsReceived = Sheets("Received Orders")
+    Set wsBackup = Sheets("Backup")
+
+    If Not Intersect(Target, Me.Columns("K")) Is Nothing Then
+        Application.EnableEvents = False
+
+        Set rngStatus = Intersect(Target, Me.Columns("K"))
+        For i = rngStatus.Count To 1 Step -1
+            Set r = rngStatus.Cells(i)
+            If r.Row >= 8 Then ' Data starts at row 8!
+                statusVal = LCase(Trim(r.Value))
+                If statusVal = "received" Then
+                    If MsgBox("Are you sure you want to archive this order as RECEIVED?", vbYesNo + vbQuestion, "Confirm Archive") = vbYes Then
+                        ' Move to Received Orders
+                        lastRowReceived = wsReceived.Cells(wsReceived.Rows.Count, "B").End(xlUp).Row + 1
+                        Me.Range("B" & r.Row & ":M" & r.Row).Copy Destination:=wsReceived.Range("B" & lastRowReceived)
+
+                        ' Backup with timestamp and username (N and O)
+                        lastRowBackup = wsBackup.Cells(wsBackup.Rows.Count, "B").End(xlUp).Row + 1
+                        Me.Range("B" & r.Row & ":M" & r.Row).Copy Destination:=wsBackup.Range("B" & lastRowBackup)
+                        wsBackup.Cells(lastRowBackup, "N").Value = Now
+                        wsBackup.Cells(lastRowBackup, "O").Value = Application.UserName
+
+                        ' Delete from Orders
+                        Me.Rows(r.Row).Delete
+
+                        ' Visual confirmation (optional: you can comment/remove this line if not needed)
+                        MsgBox "Order moved to Received Orders and backed up!", vbInformation
+                    Else
+                        ' If cancelled, reset the cell back to previous value (needs tracking variable if you want this, let me know)
+                        ' For now, just do nothing.
+                    End If
+                End If
+            End If
+        Next i
+    End If
+
+CleanUp:
+    Application.EnableEvents = True
+End Sub
+
+
